@@ -1,0 +1,371 @@
+import 'package:flutter/material.dart';
+
+class AddStudentScreen extends StatefulWidget {
+  const AddStudentScreen({super.key});
+
+  @override
+ State<AddStudentScreen> createState() => _AddStudentScreenState();
+}
+
+class _AddStudentScreenState extends State<AddStudentScreen> {
+
+  // Controllers
+
+  final TextEditingController nameController =
+      TextEditingController();
+
+  final TextEditingController usnController =
+      TextEditingController();
+
+  final TextEditingController subjectController =
+      TextEditingController();
+
+  final TextEditingController semesterController =
+      TextEditingController();
+
+  final TextEditingController yearController =
+      TextEditingController();
+
+  final TextEditingController emailController =
+      TextEditingController();
+
+  final TextEditingController phoneController =
+      TextEditingController();
+
+  String? selectedSection;
+
+  final List<String> sections = [
+    "A",
+    "B",
+    "C",
+    "D",
+  ];
+
+  // Auto Year
+
+  void updateYear(String semester) {
+
+    if (semester == "1" || semester == "2") {
+      yearController.text = "1st Year";
+    }
+
+    else if (semester == "3" || semester == "4") {
+      yearController.text = "2nd Year";
+    }
+
+    else if (semester == "5" || semester == "6") {
+      yearController.text = "3rd Year";
+    }
+
+    else if (semester == "7" || semester == "8") {
+      yearController.text = "4th Year";
+    }
+
+    else {
+      yearController.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+
+    nameController.dispose();
+    usnController.dispose();
+    subjectController.dispose();
+    semesterController.dispose();
+    yearController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+
+      backgroundColor: const Color(0xFFF6F6F6),
+
+      appBar: AppBar(
+
+        backgroundColor: const Color(0xFFD63384),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+
+        title: const Text(
+          "Add Student",
+        ),
+
+      ),
+
+      body: SingleChildScrollView(
+
+        padding: const EdgeInsets.all(20),
+
+        child: Card(
+
+          elevation: 5,
+
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+
+          child: Padding(
+
+            padding: const EdgeInsets.all(20),
+
+            child: Column(
+
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+
+              children: [
+
+                const Icon(
+                  Icons.school,
+                  size: 80,
+                  color: Color(0xFFD63384),
+                ),
+
+                const SizedBox(height: 15),
+
+                const Center(
+                  child: Text(
+                    "Register Student",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // Student Name
+
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: "Student Name",
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // USN
+
+                TextField(
+                  controller: usnController,
+                  decoration: InputDecoration(
+                    labelText: "USN",
+                    prefixIcon: const Icon(Icons.badge),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Subject Name
+
+                TextField(
+                  controller: subjectController,
+                  decoration: InputDecoration(
+                    labelText: "Subject Name",
+                    hintText: "Enter Subject Name",
+                    prefixIcon: const Icon(Icons.book),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                                // Semester
+
+                TextField(
+                  controller: semesterController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 1,
+                  decoration: InputDecoration(
+                    labelText: "Semester",
+                    hintText: "Enter Semester (1-8)",
+                    prefixIcon: const Icon(Icons.school),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    counterText: "",
+                  ),
+                  onChanged: (value) {
+                    updateYear(value);
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Year (Auto Generated)
+
+                TextField(
+                  controller: yearController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: "Year",
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Section
+
+                DropdownButtonFormField<String>(
+                  value: selectedSection,
+                  decoration: InputDecoration(
+                    labelText: "Section",
+                    prefixIcon: const Icon(Icons.groups),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  items: sections.map((section) {
+                    return DropdownMenuItem(
+                      value: section,
+                      child: Text("Section $section"),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedSection = value;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Email (Optional)
+
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: "Student Email (Optional)",
+                    prefixIcon: const Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Phone Number (Optional)
+
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  decoration: InputDecoration(
+                    labelText: "Phone Number (Optional)",
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    counterText: "",
+                  ),
+                ),
+
+                const SizedBox(height: 35),
+
+                                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+
+                      // Validation
+
+                      if (nameController.text.isEmpty ||
+                          usnController.text.isEmpty ||
+                          subjectController.text.isEmpty ||
+                          semesterController.text.isEmpty ||
+                          selectedSection == null) {
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              "Please fill all the required fields.",
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+
+                        return;
+                      }
+
+                      // SQLite code will be added later
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Student Registered Successfully!",
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+
+                      // Clear fields
+
+                      nameController.clear();
+                      usnController.clear();
+                      subjectController.clear();
+                      semesterController.clear();
+                      yearController.clear();
+                      emailController.clear();
+                      phoneController.clear();
+
+                      setState(() {
+                        selectedSection = null;
+                      });
+                    },
+
+                    icon: const Icon(
+                      Icons.person_add,
+                      color: Colors.white,
+                    ),
+
+                    label: const Text(
+                      "REGISTER STUDENT",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD63384),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ),
+
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
