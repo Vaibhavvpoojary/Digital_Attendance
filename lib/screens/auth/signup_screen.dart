@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
 
                     Icon(
-                      Icons.fact_check_rounded,
+                      Icons.person_add_alt_1_rounded,
                       size: 90,
                       color: Colors.white,
                     ),
@@ -53,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 20),
 
                     Text(
-                      "Welcome Back",
+                      "Create Account",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 30,
@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(height: 10),
 
                     Text(
-                      "Login to continue",
+                      "Register as Lecturer",
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
@@ -74,33 +74,56 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 35),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
-
                 child: Column(
                   children: [
 
                     TextField(
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.email),
-                        labelText: "Email",
+                        labelText: "Full Name",
+                        prefixIcon: const Icon(Icons.person),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
+
+                    TextField(
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        prefixIcon: const Icon(Icons.email),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    TextField(
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: "Phone Number",
+                        prefixIcon: const Icon(Icons.phone),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
 
                     TextField(
                       obscureText: _obscurePassword,
-
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.lock),
                         labelText: "Password",
-
+                        prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -113,7 +136,32 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                         ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
 
+                    const SizedBox(height: 18),
+
+                    TextField(
+                      obscureText: _obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        labelText: "Confirm Password",
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -125,19 +173,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 55,
-
                       child: ElevatedButton(
                         onPressed: () {},
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD63384),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
                         ),
-
                         child: const Text(
-                          "LOGIN",
+                          "SIGN UP",
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
@@ -146,34 +191,33 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 20),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
 
                         const Text(
-                          "Don't have an account?",
+                          "Already have an account?",
                         ),
 
                         TextButton(
                           onPressed: () {
-                            Navigator.push(context,MaterialPageRoute(
-                            builder: (context) => const SignupScreen(),
-                            ),
-                            );},
-
+                            Navigator.pop(context);
+                          },
                           child: const Text(
-                            "Sign Up",
+                            "Login",
                           ),
                         ),
+
                       ],
                     ),
+
+                    const SizedBox(height: 20),
 
                   ],
                 ),
               ),
-
             ],
           ),
         ),
