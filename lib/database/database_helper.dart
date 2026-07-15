@@ -73,6 +73,44 @@ class DatabaseHelper {
     ''');
   }
 
+  Future<int> insertSubject(Subject subject) async {
+  final db = await instance.database;
+
+  return await db.insert(
+    'subjects',
+    subject.toMap(),
+  );
+}
+
+ Future<List<Subject>> getAllSubjects() async {
+  final db = await instance.database;
+
+  final result = await db.query('subjects');
+
+  return result.map((e) => Subject.fromMap(e)).toList();
+}
+
+Future<int> updateSubject(Subject subject) async {
+  final db = await instance.database;
+
+  return await db.update(
+    'subjects',
+    subject.toMap(),
+    where: 'id = ?',
+    whereArgs: [subject.id],
+  );
+}
+
+Future<int> deleteSubject(int id) async {
+  final db = await instance.database;
+
+  return await db.delete(
+    'subjects',
+    where: 'id = ?',
+    whereArgs: [id],
+  );
+}
+
   // Close database
   Future close() async {
     final db = await instance.database;
