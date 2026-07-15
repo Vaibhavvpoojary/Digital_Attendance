@@ -121,6 +121,21 @@ class DatabaseHelper {
     return result.map((e) => Subject.fromMap(e)).toList();
   }
 
+  Future<String?> getSubjectNameById(int subjectId) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'subjects',
+      columns: ['subject_name'],
+      where: 'id = ?',
+      whereArgs: [subjectId],
+      limit: 1,
+    );
+
+    if (result.isEmpty) return null;
+    return result.first['subject_name']?.toString();
+  }
+
   Future<int> updateSubject(Subject subject) async {
     final db = await instance.database;
 
@@ -228,6 +243,7 @@ class DatabaseHelper {
     return db.rawQuery(
       '''
       SELECT
+        students.id AS student_id,
         students.student_name,
         students.usn,
         attendance.date,
@@ -238,6 +254,75 @@ class DatabaseHelper {
       ORDER BY attendance.date DESC
       ''',
       [subjectId],
+    );
+  }
+
+  Future<Map<String, dynamic>?> getStudentAttendanceStatistics({
+    required int subjectId,
+    required int studentId,
+  }) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery(
+      '''
+      SELECT
+        s.student_name,
+        s.usn,
+        COUNT(a.id) AS total_classes,
+        COALESCE(SUM(CASE WHEN a.status = 1 THEN 1 ELSE 0 END), 0) AS present_count,
+        COALESCE(SUM(CASE WHEN a.status = 0 THEN 1 ELSE 0 END), 0) AS absent_count
+      FROM students s
+      LEFT JOIN attendance a
+        ON s.id = a.student_id AND a.subject_id = ?
+      WHERE s.id = ?
+      GROUP BY s.id, s.student_name, s.usn
+      LIMIT 1
+      ''',
+      [subjectId, studentId],
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    final row = result.first;
+    final presentCount = (row['present_count'] as int?) ?? 0;
+    final totalClasses = (row['total_classes'] as int?) ?? 0;
+    final attendancePercentage = totalClasses == 0
+        ? 0.0
+        : (presentCount / totalClasses) * 100;
+
+    return {
+      'student_name': row['student_name']?.toString() ?? '',
+      'usn': row['usn']?.toString() ?? '',
+      'total_classes': totalClasses,
+      'present_count': presentCount,
+      'absent_count': (row['absent_count'] as int?) ?? 0,
+      'attendance_percentage': attendancePercentage,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendanceBySubjectAndDate({
+    required int subjectId,
+    required String date,
+  }) async {
+    final db = await instance.database;
+
+    return db.rawQuery(
+      '''
+      SELECT
+        attendance.id AS attendance_id,
+        students.id AS student_id,
+        students.student_name,
+        students.usn,
+        attendance.date,
+        attendance.status
+      FROM attendance
+      INNER JOIN students ON students.id = attendance.student_id
+      WHERE attendance.subject_id = ? AND attendance.date = ?
+      ORDER BY students.student_name ASC
+      ''',
+      [subjectId, date],
     );
   }
 
@@ -257,6 +342,17 @@ class DatabaseHelper {
         'date': date,
         'status': status,
       },
+    );
+  }
+
+  Future<int> updateAttendanceStatus(int attendanceId, int status) async {
+    final db = await instance.database;
+
+    return db.update(
+      'attendance',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [attendanceId],
     );
   }
 

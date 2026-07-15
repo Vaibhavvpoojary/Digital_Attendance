@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../database/database_helper.dart';
+import 'edit_attendance_screen.dart';
+import 'student_statistics_screen.dart';
+
+enum AttendanceFilter {
+  all,
+  week,
+  month,
+  custom,
+}
 
 class ViewAttendanceScreen extends StatefulWidget {
   final int? subjectId;
@@ -18,6 +27,8 @@ class ViewAttendanceScreen extends StatefulWidget {
 
 class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
   late Future<List<Map<String, dynamic>>> attendanceFuture;
+  AttendanceFilter selectedFilter = AttendanceFilter.all;
+  DateTimeRange? customDateRange;
 
   @override
   void initState() {
@@ -51,6 +62,62 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     }
 
     return DatabaseHelper.instance.getAttendanceBySubject(subjectId);
+  }
+
+  DateTime _dateOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  DateTime? _parseAttendanceDate(Map<String, dynamic> record) {
+    final dateValue = record['date']?.toString();
+    if (dateValue == null || dateValue.isEmpty) return null;
+
+    final parsedDate = DateTime.tryParse(dateValue);
+    if (parsedDate == null) return null;
+
+    return _dateOnly(parsedDate);
+  }
+
+  bool _isDateInThisWeek(DateTime date) {
+    final today = _dateOnly(DateTime.now());
+    final weekStart = today.subtract(const Duration(days: 6));
+    return !date.isBefore(weekStart) && !date.isAfter(today);
+  }
+
+  bool _isDateInThisMonth(DateTime date) {
+    final today = DateTime.now();
+    return date.year == today.year && date.month == today.month;
+  }
+
+  bool _isDateInCustomRange(DateTime date) {
+    final range = customDateRange;
+    if (range == null) return false;
+
+    final start = _dateOnly(range.start);
+    final end = _dateOnly(range.end);
+    return !date.isBefore(start) && !date.isAfter(end);
+  }
+
+  bool _shouldShowRecord(Map<String, dynamic> record) {
+    final attendanceDate = _parseAttendanceDate(record);
+    if (attendanceDate == null) return false;
+
+    switch (selectedFilter) {
+      case AttendanceFilter.all:
+        return true;
+      case AttendanceFilter.week:
+        return _isDateInThisWeek(attendanceDate);
+      case AttendanceFilter.month:
+        return _isDateInThisMonth(attendanceDate);
+      case AttendanceFilter.custom:
+        return _isDateInCustomRange(attendanceDate);
+    }
+  }
+
+  List<Map<String, dynamic>> _filterAttendanceRecords(
+    List<Map<String, dynamic>> records,
+  ) {
+    return records.where(_shouldShowRecord).toList();
   }
 
   String _formatDateLabel(String dateValue) {
@@ -117,6 +184,163 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
     return records.where((record) => record['status'] == status).toList();
   }
 
+  void _openStudentStatisticsScreen(Map<String, dynamic> record) async {
+    final subjectId = await _resolveSubjectId();
+    final studentId = record['student_id'] as int?;
+
+    if (!mounted || subjectId == null || studentId == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentStatisticsScreen(
+          subjectId: subjectId,
+          studentId: studentId,
+        ),
+      ),
+    );
+  }
+
+  String _formatFilterSubtitle() {
+    if (selectedFilter != AttendanceFilter.custom || customDateRange == null) {
+      return '';
+    }
+
+    final start = MaterialLocalizations.of(context).formatMediumDate(
+      customDateRange!.start,
+    );
+    final end = MaterialLocalizations.of(context).formatMediumDate(
+      customDateRange!.end,
+    );
+
+    return '$start - $end';
+  }
+
+  Future<void> _selectCustomDateRange() async {
+    final pickedRange = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDateRange: customDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFD63384),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedRange == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      selectedFilter = AttendanceFilter.custom;
+      customDateRange = pickedRange;
+    });
+  }
+
+  void _applyFilter(AttendanceFilter filter) {
+    if (filter == AttendanceFilter.custom) {
+      _selectCustomDateRange();
+      return;
+    }
+
+    setState(() {
+      selectedFilter = filter;
+    });
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required AttendanceFilter filter,
+  }) {
+    final isSelected = selectedFilter == filter;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => _applyFilter(filter),
+      selectedColor: const Color(0xFFD63384),
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? const Color(0xFFD63384) : Colors.grey.shade300,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(
+                Icons.calendar_month_outlined,
+                size: 52,
+                color: Color(0xFFD63384),
+              ),
+              SizedBox(height: 14),
+              Text(
+                'No Attendance Records Found',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openEditAttendanceScreen({
+    required String selectedDate,
+    required List<Map<String, dynamic>> attendanceRecords,
+  }) async {
+    final subjectId = await _resolveSubjectId();
+
+    if (!mounted || subjectId == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditAttendanceScreen(
+          subjectId: subjectId,
+          selectedDate: selectedDate,
+          attendanceRecords: attendanceRecords,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      attendanceFuture = _loadAttendance();
+    });
+  }
+
   Widget _buildStudentSection({
     required String title,
     required List<Map<String, dynamic>> students,
@@ -158,11 +382,19 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          student['student_name']?.toString() ?? '',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        InkWell(
+                          onTap: () => _openStudentStatisticsScreen(student),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Text(
+                              student['student_name']?.toString() ?? '',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFD63384),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -220,7 +452,9 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
             }
 
             final records = snapshot.data ?? [];
-            final groupedAttendance = _groupAttendanceByDate(records);
+            final filteredRecords = _filterAttendanceRecords(records);
+            final groupedAttendance = _groupAttendanceByDate(filteredRecords);
+            final filterSubtitle = _formatFilterSubtitle();
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,26 +468,54 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Total Attendance Records : ${records.length}',
+                  'Total Attendance Records : ${filteredRecords.length}',
                   style: const TextStyle(
                     color: Colors.grey,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 20),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip(
+                        label: 'All Attendance',
+                        filter: AttendanceFilter.all,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildFilterChip(
+                        label: 'This Week',
+                        filter: AttendanceFilter.week,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildFilterChip(
+                        label: 'This Month',
+                        filter: AttendanceFilter.month,
+                      ),
+                      const SizedBox(width: 10),
+                      _buildFilterChip(
+                        label: 'Custom',
+                        filter: AttendanceFilter.custom,
+                      ),
+                    ],
+                  ),
+                ),
+                if (filterSubtitle.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    filterSubtitle,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
                 Expanded(
                   child: groupedAttendance.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No attendance records found for this subject.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        )
+                      ? _buildEmptyState()
                       : ListView.builder(
                           itemCount: groupedAttendance.length,
                           itemBuilder: (context, index) {
@@ -309,6 +571,36 @@ class _ViewAttendanceScreenState extends State<ViewAttendanceScreen> {
                                     title: '✘ ABSENT STUDENTS',
                                     students: absentStudents,
                                     isPresent: false,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        _openEditAttendanceScreen(
+                                          selectedDate: group['date'] as String,
+                                          attendanceRecords: groupRecords,
+                                        );
+                                      },
+                                      icon: const Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                      ),
+                                      label: const Text(
+                                        'Edit Attendance',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFD63384),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
