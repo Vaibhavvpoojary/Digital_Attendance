@@ -20,6 +20,7 @@ class TakeAttendanceScreen extends StatefulWidget {
 class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   List<Student> students = [];
   final Map<int, bool?> attendance = {};
+  DateTime selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -44,6 +45,96 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
               .map((student) => MapEntry(student.id!, null)),
         );
     });
+  }
+
+  Future<void> _pickDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFD63384),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null && mounted) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
+
+  Future<void> _saveAttendance() async {
+    if (students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No students available for this subject.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (attendance.values.any((value) => value == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please mark all students as Present or Absent.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final dateKey = selectedDate.toIso8601String().split('T').first;
+
+    try {
+      await DatabaseHelper.instance.deleteAttendanceBySubjectAndDate(
+        subjectId: widget.subjectId,
+        date: dateKey,
+      );
+
+      for (final student in students) {
+        final studentId = student.id;
+        if (studentId == null) continue;
+
+        await DatabaseHelper.instance.insertAttendance(
+          studentId: studentId,
+          subjectId: widget.subjectId,
+          date: dateKey,
+          status: attendance[studentId] == true ? 1 : 0,
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Attendance Saved Successfully for ${MaterialLocalizations.of(context).formatMediumDate(selectedDate)}',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save attendance: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -82,6 +173,45 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(15),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: const Color(0xFFD63384)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month,
+                      color: Color(0xFFD63384),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Date: ${MaterialLocalizations.of(context).formatMediumDate(selectedDate)}",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: students.isEmpty
                   ? Center(
@@ -174,11 +304,7 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Attendance Saved Successfully"),
-                    ),
-                  );
+                  _saveAttendance();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD63384),

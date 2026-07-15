@@ -222,6 +222,57 @@ class DatabaseHelper {
     return result.map((e) => Student.fromMap(e)).toList();
   }
 
+  Future<List<Map<String, dynamic>>> getAttendanceBySubject(int subjectId) async {
+    final db = await instance.database;
+
+    return db.rawQuery(
+      '''
+      SELECT
+        students.student_name,
+        students.usn,
+        attendance.date,
+        attendance.status
+      FROM attendance
+      INNER JOIN students ON students.id = attendance.student_id
+      WHERE attendance.subject_id = ?
+      ORDER BY attendance.date DESC
+      ''',
+      [subjectId],
+    );
+  }
+
+  Future<int> insertAttendance({
+    required int studentId,
+    required int subjectId,
+    required String date,
+    required int status,
+  }) async {
+    final db = await instance.database;
+
+    return db.insert(
+      'attendance',
+      {
+        'student_id': studentId,
+        'subject_id': subjectId,
+        'date': date,
+        'status': status,
+      },
+    );
+  }
+
+  Future<int> deleteAttendanceBySubjectAndDate({
+    required int subjectId,
+    required String date,
+  }) async {
+    final db = await instance.database;
+
+    return db.delete(
+      'attendance',
+      where: 'subject_id = ? AND date = ?',
+      whereArgs: [subjectId, date],
+    );
+  }
+
   Future<int> removeStudentFromSubject(int subjectId, int studentId) async {
     final db = await instance.database;
 
