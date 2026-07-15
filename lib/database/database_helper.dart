@@ -49,7 +49,7 @@ class DatabaseHelper {
       CREATE TABLE students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_name TEXT NOT NULL,
-        usn TEXT NOT NULL,
+        usn TEXT NOT NULL
       )
     ''');
 

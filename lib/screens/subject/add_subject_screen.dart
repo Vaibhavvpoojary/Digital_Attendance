@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../database/database_helper.dart';
+import '../../models/subject.dart';
 
 class AddSubjectScreen extends StatefulWidget {
   const AddSubjectScreen({super.key});
@@ -304,11 +306,43 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
 
                   child: ElevatedButton.icon(
 
-                    onPressed: () {
+                    onPressed: () async {
 
-                      // SQLite code will come later
+  // Validation
+  if (subjectNameController.text.isEmpty ||
+      subjectCodeController.text.isEmpty ||
+      roomController.text.isEmpty ||
+      sectionController.text.isEmpty ||
+      yearController.text.isEmpty) {
 
-                    },
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Please fill all the fields"),
+      ),
+    );
+
+    return;
+  }
+
+  Subject subject = Subject(
+    subjectName: subjectNameController.text,
+    subjectCode: subjectCodeController.text,
+    section: sectionController.text,
+    roomNo: roomController.text,
+    year: yearController.text,
+  );
+
+  await DatabaseHelper.instance.insertSubject(subject);
+
+ScaffoldMessenger.of(context).showSnackBar(
+  const SnackBar(
+    content: Text("Subject Registered Successfully"),
+  ),
+);
+
+Navigator.pop(context);
+
+},
 
                     icon: const Icon(
                       Icons.save,
