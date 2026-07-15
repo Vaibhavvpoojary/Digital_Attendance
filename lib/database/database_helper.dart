@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/subject.dart';
+import '../models/student.dart';
 
 class DatabaseHelper {
   // Singleton instance
@@ -49,11 +50,14 @@ class DatabaseHelper {
       CREATE TABLE students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_name TEXT NOT NULL,
-        usn TEXT NOT NULL
+        usn TEXT NOT NULL,
+        semester INTEGER NOT NULL
+        section TEXT NOT NULL
+        year TEXT NOT NULL 
       )
     ''');
 
-    await db.execute('''
+    await db.execute( '''
   CREATE TABLE subject_students(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     subject_id INTEGER NOT NULL,
@@ -109,6 +113,70 @@ Future<int> deleteSubject(int id) async {
     where: 'id = ?',
     whereArgs: [id],
   );
+}
+
+Future<int> insertStudent(Student student) async {
+
+  final db = await instance.database;
+
+  return await db.insert(
+    'students',
+    student.toMap(),
+  );
+
+}
+
+Future<List<Student>> getAllStudents() async {
+
+  final db = await instance.database;
+
+  final result = await db.query(
+    'students',
+  );
+
+
+  return result
+      .map((e) => Student.fromMap(e))
+      .toList();
+
+}
+
+Future<int> updateStudent(Student student) async {
+
+  final db = await instance.database;
+
+  return await db.update(
+
+    'students',
+
+    student.toMap(),
+
+    where: 'id = ?',
+
+    whereArgs: [
+      student.id
+    ],
+
+  );
+
+}
+
+Future<int> deleteStudent(int id) async {
+
+  final db = await instance.database;
+
+  return await db.delete(
+
+    'students',
+
+    where: 'id = ?',
+
+    whereArgs: [
+      id
+    ],
+
+  );
+
 }
 
   // Close database

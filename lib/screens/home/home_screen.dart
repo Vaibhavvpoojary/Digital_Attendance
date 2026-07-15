@@ -5,6 +5,7 @@ import '../../models/subject.dart';
 import '../student/add_student_screen.dart';
 import '../subject/add_subject_screen.dart';
 import '../subject/subject_details_screen.dart';
+import '../student/registered_students_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -95,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Welcome 👋",
+                            "Welcome ",
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 15,
@@ -346,6 +347,46 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     label: const Text(
                       "Add Student",
+                      style: TextStyle(
+                        color: Color(0xFFD63384),
+                        fontSize: 18,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: Color(0xFFD63384),
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisteredStudentsScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.people,
+                      color: Color(0xFFD63384),
+                    ),
+                    label: const Text(
+                      "Registered Students",
                       style: TextStyle(
                         color: Color(0xFFD63384),
                         fontSize: 18,

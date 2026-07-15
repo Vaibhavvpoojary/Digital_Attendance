@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/student.dart';
+import '../../database/database_helper.dart';
 
 class AddStudentScreen extends StatefulWidget {
   const AddStudentScreen({super.key});
@@ -290,7 +292,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   height: 55,
 
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
 
                       // Validation
 
@@ -311,7 +313,43 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
                         return;
                       }
+                        // Create Student Object
 
+Student student = Student(
+
+  studentName: nameController.text.trim(),
+
+  usn: usnController.text.trim(),
+
+  semester: int.parse(
+    semesterController.text.trim(),
+  ),
+
+  section: selectedSection!,
+
+  year: yearController.text.trim(),
+
+);
+
+
+// Insert Student into SQLite
+
+await DatabaseHelper.instance.insertStudent(student);
+
+
+// DEBUG: Check students in database
+
+final students = await DatabaseHelper.instance.getAllStudents();
+
+print("===== STUDENTS IN DATABASE =====");
+
+for (var student in students) {
+
+  print(
+    "${student.id} | ${student.studentName} | ${student.usn} | ${student.semester} | ${student.section} | ${student.year}"
+  );
+
+}
                       // SQLite code will be added later
 
                       ScaffoldMessenger.of(context).showSnackBar(
