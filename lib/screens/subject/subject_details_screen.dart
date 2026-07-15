@@ -104,6 +104,7 @@ class SubjectDetailsScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => TakeAttendanceScreen(
+                      subjectId: subjectId,
                       subjectName: subjectName,
                     ),
                   ),

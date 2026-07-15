@@ -74,48 +74,69 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     }
 
     final trimmedUsn = usnController.text.trim();
-    final existingStudent = await DatabaseHelper.instance.getStudentByUsn(trimmedUsn);
+    final student = Student(
+      studentName: nameController.text.trim(),
+      usn: trimmedUsn,
+      semester: int.parse(semesterController.text.trim()),
+      section: selectedSection!,
+      year: yearController.text.trim(),
+    );
 
-    int studentId;
+    try {
+      final existingStudent = await DatabaseHelper.instance.getStudentByUsn(trimmedUsn);
 
-    if (existingStudent == null) {
-      final student = Student(
-        studentName: nameController.text.trim(),
-        usn: trimmedUsn,
-        semester: int.parse(semesterController.text.trim()),
-        section: selectedSection!,
-        year: yearController.text.trim(),
+      final int studentId;
+
+      if (existingStudent == null) {
+        studentId = await DatabaseHelper.instance.insertStudent(student);
+      } else {
+        final updatedStudent = Student(
+          id: existingStudent.id,
+          studentName: student.studentName,
+          usn: student.usn,
+          semester: student.semester,
+          section: student.section,
+          year: student.year,
+        );
+
+        await DatabaseHelper.instance.updateStudent(updatedStudent);
+        studentId = existingStudent.id!;
+      }
+
+      await DatabaseHelper.instance.insertSubjectStudent(
+        widget.subjectId,
+        studentId,
       );
 
-      studentId = await DatabaseHelper.instance.insertStudent(student);
-    } else {
-      studentId = existingStudent.id!;
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Student Registered Successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      nameController.clear();
+      usnController.clear();
+      semesterController.clear();
+      yearController.clear();
+      emailController.clear();
+      phoneController.clear();
+
+      setState(() {
+        selectedSection = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to register student: $error"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-
-    await DatabaseHelper.instance.insertSubjectStudent(
-      subjectId: widget.subjectId,
-      studentId: studentId,
-    );
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Student Registered Successfully!"),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    nameController.clear();
-    usnController.clear();
-    semesterController.clear();
-    yearController.clear();
-    emailController.clear();
-    phoneController.clear();
-
-    setState(() {
-      selectedSection = null;
-    });
   }
 
   @override
@@ -227,7 +248,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                 ),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
-                  value: selectedSection,
+                  initialValue: selectedSection,
                   decoration: InputDecoration(
                     labelText: "Section",
                     prefixIcon: const Icon(Icons.groups),

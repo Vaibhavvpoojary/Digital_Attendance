@@ -12,9 +12,13 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null) {
+      await _ensureSchema(_database!);
+      return _database!;
+    }
 
     _database = await _initDB('attendance.db');
+    await _ensureSchema(_database!);
     return _database!;
   }
 
@@ -24,8 +28,9 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
@@ -69,6 +74,35 @@ class DatabaseHelper {
         status INTEGER NOT NULL
       )
     ''');
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    await _ensureSchema(db);
+  }
+
+  Future<void> _ensureSchema(Database db) async {
+    final tableInfo = await db.rawQuery('PRAGMA table_info(students)');
+    final existingColumns = tableInfo
+        .map((column) => column['name'] as String)
+        .toSet();
+
+    if (!existingColumns.contains('semester')) {
+      await db.execute(
+        'ALTER TABLE students ADD COLUMN semester INTEGER NOT NULL DEFAULT 1',
+      );
+    }
+
+    if (!existingColumns.contains('section')) {
+      await db.execute(
+        'ALTER TABLE students ADD COLUMN section TEXT NOT NULL DEFAULT "A"',
+      );
+    }
+
+    if (!existingColumns.contains('year')) {
+      await db.execute(
+        'ALTER TABLE students ADD COLUMN year TEXT NOT NULL DEFAULT "1st Year"',
+      );
+    }
   }
 
   Future<int> insertSubject(Subject subject) async {
@@ -159,10 +193,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> insertSubjectStudent({
-    required int subjectId,
-    required int studentId,
-  }) async {
+  Future<int> insertSubjectStudent(int subjectId, int studentId) async {
     final db = await instance.database;
 
     return db.insert(
