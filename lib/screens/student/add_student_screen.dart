@@ -1,38 +1,29 @@
 import 'package:flutter/material.dart';
-import '../../models/student.dart';
+
 import '../../database/database_helper.dart';
+import '../../models/student.dart';
 
 class AddStudentScreen extends StatefulWidget {
-  const AddStudentScreen({super.key});
+  final int subjectId;
+  final String subjectName;
+
+  const AddStudentScreen({
+    super.key,
+    required this.subjectId,
+    required this.subjectName,
+  });
 
   @override
- State<AddStudentScreen> createState() => _AddStudentScreenState();
+  State<AddStudentScreen> createState() => _AddStudentScreenState();
 }
 
 class _AddStudentScreenState extends State<AddStudentScreen> {
-
-  // Controllers
-
-  final TextEditingController nameController =
-      TextEditingController();
-
-  final TextEditingController usnController =
-      TextEditingController();
-
-  final TextEditingController subjectController =
-      TextEditingController();
-
-  final TextEditingController semesterController =
-      TextEditingController();
-
-  final TextEditingController yearController =
-      TextEditingController();
-
-  final TextEditingController emailController =
-      TextEditingController();
-
-  final TextEditingController phoneController =
-      TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController usnController = TextEditingController();
+  final TextEditingController semesterController = TextEditingController();
+  final TextEditingController yearController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
   String? selectedSection;
 
@@ -43,94 +34,118 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     "D",
   ];
 
-  // Auto Year
-
   void updateYear(String semester) {
-
     if (semester == "1" || semester == "2") {
       yearController.text = "1st Year";
-    }
-
-    else if (semester == "3" || semester == "4") {
+    } else if (semester == "3" || semester == "4") {
       yearController.text = "2nd Year";
-    }
-
-    else if (semester == "5" || semester == "6") {
+    } else if (semester == "5" || semester == "6") {
       yearController.text = "3rd Year";
-    }
-
-    else if (semester == "7" || semester == "8") {
+    } else if (semester == "7" || semester == "8") {
       yearController.text = "4th Year";
-    }
-
-    else {
+    } else {
       yearController.clear();
     }
   }
 
   @override
   void dispose() {
-
     nameController.dispose();
     usnController.dispose();
-    subjectController.dispose();
     semesterController.dispose();
     yearController.dispose();
     emailController.dispose();
     phoneController.dispose();
-
     super.dispose();
+  }
+
+  Future<void> _registerStudent() async {
+    if (nameController.text.isEmpty ||
+        usnController.text.isEmpty ||
+        semesterController.text.isEmpty ||
+        selectedSection == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill all the required fields."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final trimmedUsn = usnController.text.trim();
+    final existingStudent = await DatabaseHelper.instance.getStudentByUsn(trimmedUsn);
+
+    int studentId;
+
+    if (existingStudent == null) {
+      final student = Student(
+        studentName: nameController.text.trim(),
+        usn: trimmedUsn,
+        semester: int.parse(semesterController.text.trim()),
+        section: selectedSection!,
+        year: yearController.text.trim(),
+      );
+
+      studentId = await DatabaseHelper.instance.insertStudent(student);
+    } else {
+      studentId = existingStudent.id!;
+    }
+
+    await DatabaseHelper.instance.insertSubjectStudent(
+      subjectId: widget.subjectId,
+      studentId: studentId,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Student Registered Successfully!"),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    nameController.clear();
+    usnController.clear();
+    semesterController.clear();
+    yearController.clear();
+    emailController.clear();
+    phoneController.clear();
+
+    setState(() {
+      selectedSection = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       backgroundColor: const Color(0xFFF6F6F6),
-
       appBar: AppBar(
-
         backgroundColor: const Color(0xFFD63384),
         foregroundColor: Colors.white,
         centerTitle: true,
-
-        title: const Text(
-          "Add Student",
-        ),
-
+        title: const Text("Add Student"),
       ),
-
       body: SingleChildScrollView(
-
         padding: const EdgeInsets.all(20),
-
         child: Card(
-
           elevation: 5,
-
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-
           child: Padding(
-
             padding: const EdgeInsets.all(20),
-
             child: Column(
-
               crossAxisAlignment: CrossAxisAlignment.stretch,
-
               children: [
-
                 const Icon(
                   Icons.school,
                   size: 80,
                   color: Color(0xFFD63384),
                 ),
-
                 const SizedBox(height: 15),
-
                 const Center(
                   child: Text(
                     "Register Student",
@@ -140,11 +155,25 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 30),
-
-                // Student Name
-
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDE7F1),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: const Color(0xFFD63384)),
+                  ),
+                  child: Text(
+                    "Subject: ${widget.subjectName}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFD63384),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -155,11 +184,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // USN
-
                 TextField(
                   controller: usnController,
                   decoration: InputDecoration(
@@ -170,27 +195,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Subject Name
-
-                TextField(
-                  controller: subjectController,
-                  decoration: InputDecoration(
-                    labelText: "Subject Name",
-                    hintText: "Enter Subject Name",
-                    prefixIcon: const Icon(Icons.book),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                                // Semester
-
                 TextField(
                   controller: semesterController,
                   keyboardType: TextInputType.number,
@@ -208,11 +213,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     updateYear(value);
                   },
                 ),
-
                 const SizedBox(height: 20),
-
-                // Year (Auto Generated)
-
                 TextField(
                   controller: yearController,
                   readOnly: true,
@@ -224,11 +225,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Section
-
                 DropdownButtonFormField<String>(
                   value: selectedSection,
                   decoration: InputDecoration(
@@ -250,11 +247,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     });
                   },
                 ),
-
                 const SizedBox(height: 20),
-
-                // Email (Optional)
-
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -266,11 +259,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Phone Number (Optional)
-
                 TextField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
@@ -284,103 +273,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     counterText: "",
                   ),
                 ),
-
                 const SizedBox(height: 35),
-
-                                SizedBox(
+                SizedBox(
                   width: double.infinity,
                   height: 55,
-
                   child: ElevatedButton.icon(
-                    onPressed: () async {
-
-                      // Validation
-
-                      if (nameController.text.isEmpty ||
-                          usnController.text.isEmpty ||
-                          subjectController.text.isEmpty ||
-                          semesterController.text.isEmpty ||
-                          selectedSection == null) {
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Please fill all the required fields.",
-                            ),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-
-                        return;
-                      }
-                        // Create Student Object
-
-Student student = Student(
-
-  studentName: nameController.text.trim(),
-
-  usn: usnController.text.trim(),
-
-  semester: int.parse(
-    semesterController.text.trim(),
-  ),
-
-  section: selectedSection!,
-
-  year: yearController.text.trim(),
-
-);
-
-
-// Insert Student into SQLite
-
-await DatabaseHelper.instance.insertStudent(student);
-
-
-// DEBUG: Check students in database
-
-final students = await DatabaseHelper.instance.getAllStudents();
-
-print("===== STUDENTS IN DATABASE =====");
-
-for (var student in students) {
-
-  print(
-    "${student.id} | ${student.studentName} | ${student.usn} | ${student.semester} | ${student.section} | ${student.year}"
-  );
-
-}
-                      // SQLite code will be added later
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Student Registered Successfully!",
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-
-                      // Clear fields
-
-                      nameController.clear();
-                      usnController.clear();
-                      subjectController.clear();
-                      semesterController.clear();
-                      yearController.clear();
-                      emailController.clear();
-                      phoneController.clear();
-
-                      setState(() {
-                        selectedSection = null;
-                      });
-                    },
-
+                    onPressed: _registerStudent,
                     icon: const Icon(
                       Icons.person_add,
                       color: Colors.white,
                     ),
-
                     label: const Text(
                       "REGISTER STUDENT",
                       style: TextStyle(
@@ -389,7 +291,6 @@ for (var student in students) {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD63384),
                       shape: RoundedRectangleBorder(
@@ -398,7 +299,6 @@ for (var student in students) {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),

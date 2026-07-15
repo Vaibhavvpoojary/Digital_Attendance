@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../database/database_helper.dart';
 import '../../models/subject.dart';
-import '../student/add_student_screen.dart';
 import '../subject/add_subject_screen.dart';
 import '../subject/subject_details_screen.dart';
-import '../student/registered_students_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -52,8 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              //================ HEADER =================//
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.only(
@@ -125,11 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 30),
-
-              //================ SUBJECT TITLE =================//
-
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Align(
@@ -143,11 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 25),
-
-              //================ SUBJECT GRID / EMPTY STATE =================//
-
               if (subjects.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -210,6 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => SubjectDetailsScreen(
+                                subjectId: subject.id!,
                                 subjectName: subject.subjectName,
                                 subjectCode: subject.subjectCode,
                                 section: subject.section,
@@ -277,24 +266,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-              const SizedBox(height: 35),
-
-              //================ QUICK ACTIONS =================//
-
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Quick Actions",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 20),
 
               Padding(
@@ -317,86 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFD63384),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AddStudentScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.person_add,
-                      color: Color(0xFFD63384),
-                    ),
-                    label: const Text(
-                      "Add Student",
-                      style: TextStyle(
-                        color: Color(0xFFD63384),
-                        fontSize: 18,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Color(0xFFD63384),
-                        width: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisteredStudentsScreen(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.people,
-                      color: Color(0xFFD63384),
-                    ),
-                    label: const Text(
-                      "Registered Students",
-                      style: TextStyle(
-                        color: Color(0xFFD63384),
-                        fontSize: 18,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Color(0xFFD63384),
-                        width: 2,
-                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
