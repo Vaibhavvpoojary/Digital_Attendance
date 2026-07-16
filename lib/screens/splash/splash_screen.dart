@@ -1,7 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import '../auth/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../home/home_screen.dart';
+import '../welcome/welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,18 +12,42 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+
   @override
   void initState() {
     super.initState();
+    checkUser();
+  }
 
-    Timer(const Duration(seconds: 3), () {
+  Future<void> checkUser() async {
+
+    final prefs = await SharedPreferences.getInstance();
+
+    bool completed =
+        prefs.getBool("profileCompleted") ?? false;
+
+    // Show splash screen for 2 seconds
+    await Future.delayed(
+      const Duration(seconds: 2),
+    );
+
+    if (!mounted) return;
+
+    if (completed) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
+          builder: (_) => const HomeScreen(),
         ),
       );
-    });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const WelcomeScreen(),
+        ),
+      );
+    }
   }
 
   @override
@@ -46,6 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+
             Icon(
               Icons.fact_check_rounded,
               size: 100,
@@ -96,6 +122,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 fontSize: 14,
               ),
             ),
+
           ],
         ),
       ),
