@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../home/home_screen.dart';
+import '../../database/database_helper.dart';
+import '../../models/lecturer.dart';
 
 class LecturerDetailsScreen extends StatefulWidget {
   const LecturerDetailsScreen({super.key});
@@ -247,44 +248,62 @@ class _LecturerDetailsScreenState
                   child: ElevatedButton.icon(
                     onPressed: () async {
 
+  // Validation
+
+  if (nameController.text.isEmpty ||
+      emailController.text.isEmpty ||
+      phoneController.text.isEmpty ||
+      collegeController.text.isEmpty ||
+      employeeIdController.text.isEmpty ||
+      selectedDepartment == null ||
+      selectedDesignation == null) {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Please fill all the fields"),
+      ),
+    );
+
+    return;
+  }
+
+  // Create Lecturer object
+
+  Lecturer lecturer = Lecturer(
+    name: nameController.text,
+    email: emailController.text,
+    phone: phoneController.text,
+    college: collegeController.text,
+    department: selectedDepartment!,
+    designation: selectedDesignation!,
+    employeeId: employeeIdController.text,
+  );
+
+  // Save into SQLite
+
+  int lecturerId =
+      await DatabaseHelper.instance.insertLecturer(lecturer);
+
+  // Save details in SharedPreferences
+
   final prefs = await SharedPreferences.getInstance();
 
-  await prefs.setString(
-      "name",
-      nameController.text);
+  await prefs.setInt("lecturerId", lecturerId);
 
-  await prefs.setString(
-      "email",
-      emailController.text);
+  await prefs.setString("name", lecturer.name);
+  await prefs.setString("email", lecturer.email);
+  await prefs.setString("phone", lecturer.phone);
+  await prefs.setString("college", lecturer.college);
+  await prefs.setString("department", lecturer.department);
+  await prefs.setString("designation", lecturer.designation);
+  await prefs.setString("employeeId", lecturer.employeeId);
 
-  await prefs.setString(
-      "phone",
-      phoneController.text);
-
-  await prefs.setString(
-      "college",
-      collegeController.text);
-
-  await prefs.setString(
-      "department",
-      selectedDepartment ?? "");
-
-  await prefs.setString(
-      "designation",
-      selectedDesignation ?? "");
-
-  await prefs.setString(
-      "employeeId",
-      employeeIdController.text);
-
-  await prefs.setBool(
-      "profileCompleted",
-      true);
+  await prefs.setBool("profileCompleted", true);
 
   Navigator.pushReplacement(
     context,
     MaterialPageRoute(
-      builder: (context) => const HomeScreen(),
+      builder: (_) => const HomeScreen(),
     ),
   );
 

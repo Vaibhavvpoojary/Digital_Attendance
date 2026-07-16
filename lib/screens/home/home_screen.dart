@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../database/database_helper.dart';
 import '../../models/subject.dart';
 import '../subject/add_subject_screen.dart';
@@ -14,22 +14,69 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Subject> subjects = [];
+   String lecturerName = "";
+   String lecturerEmail = "";
 
-  @override
-  void initState() {
-    super.initState();
-    loadSubjects();
-  }
+@override
+void initState() {
+  super.initState();
 
+  loadLecturerDetails();
+  loadSubjects();
+}
+
+  Future<void> loadLecturerDetails() async {
+
+  final prefs = await SharedPreferences.getInstance();
+
+  if (!mounted) return;
+
+  setState(() {
+
+    lecturerName = prefs.getString("name") ?? "Lecturer";
+
+    lecturerEmail = prefs.getString("email") ?? "";
+
+  });
+
+}
   Future<void> loadSubjects() async {
-    final loadedSubjects = await DatabaseHelper.instance.getAllSubjects();
 
-    if (!mounted) return;
+  final prefs = await SharedPreferences.getInstance();
 
-    setState(() {
-      subjects = loadedSubjects;
-    });
+  final lecturerId = prefs.getInt("lecturerId") ?? 0;
+
+  print("==================================");
+  print("Current Lecturer ID : $lecturerId");
+
+  final loadedSubjects =
+      await DatabaseHelper.instance.getSubjectsByLecturer(lecturerId);
+
+  print("Subjects Found : ${loadedSubjects.length}");
+
+  for (var subject in loadedSubjects) {
+    print(subject.subjectName);
   }
+
+  print("==================================");
+
+  if (!mounted) return;
+
+  setState(() {
+    subjects = loadedSubjects;
+  });
+}
+
+
+// TEMPORARY FUNCTION TO DELETE OLD TEST SUBJECTS
+
+Future<void> clearSubjects() async {
+
+  await DatabaseHelper.instance.deleteAllSubjects();
+
+  await loadSubjects();
+
+}
 
   Future<void> _openAddSubjectScreen() async {
     await Navigator.push(
@@ -78,7 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       radius: 35,
                       backgroundColor: Colors.white,
                       child: Text(
-                        "VP",
+                        lecturerName.isNotEmpty
+    ? lecturerName.substring(0,2).toUpperCase()
+    : "LP",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -87,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 15),
-                    const Expanded(
+                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -100,8 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            "Vaibhav Poojary",
-                            style: TextStyle(
+                            lecturerName,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -109,8 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            "vaibhav@gmail.com",
-                            style: TextStyle(
+                            lecturerEmail,
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 15,
                             ),

@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/lecturer.dart';
 import '../models/student.dart';
 import '../models/subject.dart';
 
@@ -17,8 +18,9 @@ class DatabaseHelper {
       return _database!;
     }
 
-    _database = await _initDB('attendance.db');
+    _database = await _initDB("attendance.db");
     await _ensureSchema(_database!);
+
     return _database!;
   }
 
@@ -28,13 +30,31 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
+
+    //---------------- LECTURERS ----------------//
+
+    await db.execute('''
+      CREATE TABLE lecturers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        college TEXT NOT NULL,
+        department TEXT NOT NULL,
+        designation TEXT NOT NULL,
+        employee_id TEXT NOT NULL
+      )
+    ''');
+
+    //---------------- SUBJECTS ----------------//
+
     await db.execute('''
       CREATE TABLE subjects(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,9 +62,12 @@ class DatabaseHelper {
         subject_code TEXT NOT NULL,
         section TEXT NOT NULL,
         room_no TEXT NOT NULL,
-        year TEXT NOT NULL
+        year TEXT NOT NULL,
+        lecturer_id INTEGER NOT NULL
       )
     ''');
+
+    //---------------- STUDENTS ----------------//
 
     await db.execute('''
       CREATE TABLE students(
@@ -57,6 +80,8 @@ class DatabaseHelper {
       )
     ''');
 
+    //---------------- SUBJECT STUDENTS ----------------//
+
     await db.execute('''
       CREATE TABLE subject_students(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,6 +89,8 @@ class DatabaseHelper {
         student_id INTEGER NOT NULL
       )
     ''');
+
+    //---------------- ATTENDANCE ----------------//
 
     await db.execute('''
       CREATE TABLE attendance(
@@ -76,34 +103,121 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+  Future<void> _upgradeDB(
+      Database db,
+      int oldVersion,
+      int newVersion,
+      ) async {
+
     await _ensureSchema(db);
   }
 
   Future<void> _ensureSchema(Database db) async {
-    final tableInfo = await db.rawQuery('PRAGMA table_info(students)');
-    final existingColumns = tableInfo
-        .map((column) => column['name'] as String)
-        .toSet();
 
-    if (!existingColumns.contains('semester')) {
+    // STUDENTS
+
+    final studentInfo =
+        await db.rawQuery("PRAGMA table_info(students)");
+
+    final studentColumns =
+        studentInfo.map((e) => e["name"] as String).toSet();
+
+    if (!studentColumns.contains("semester")) {
       await db.execute(
-        'ALTER TABLE students ADD COLUMN semester INTEGER NOT NULL DEFAULT 1',
+        "ALTER TABLE students ADD COLUMN semester INTEGER NOT NULL DEFAULT 1",
       );
     }
 
-    if (!existingColumns.contains('section')) {
+    if (!studentColumns.contains("section")) {
       await db.execute(
-        'ALTER TABLE students ADD COLUMN section TEXT NOT NULL DEFAULT "A"',
+        "ALTER TABLE students ADD COLUMN section TEXT NOT NULL DEFAULT 'A'",
       );
     }
 
-    if (!existingColumns.contains('year')) {
+    if (!studentColumns.contains("year")) {
       await db.execute(
-        'ALTER TABLE students ADD COLUMN year TEXT NOT NULL DEFAULT "1st Year"',
+        "ALTER TABLE students ADD COLUMN year TEXT NOT NULL DEFAULT '1st Year'",
+      );
+    }
+
+    // SUBJECTS
+
+    final subjectInfo =
+        await db.rawQuery("PRAGMA table_info(subjects)");
+
+    final subjectColumns =
+        subjectInfo.map((e) => e["name"] as String).toSet();
+
+    if (!subjectColumns.contains("lecturer_id")) {
+      await db.execute(
+        "ALTER TABLE subjects ADD COLUMN lecturer_id INTEGER NOT NULL DEFAULT 1",
       );
     }
   }
+
+    //=========================================================
+  // LECTURER METHODS
+  //=========================================================
+
+  Future<int> insertLecturer(Lecturer lecturer) async {
+    final db = await instance.database;
+
+    return await db.insert(
+      'lecturers',
+      lecturer.toMap(),
+    );
+  }
+
+  Future<Lecturer?> getLecturerById(int id) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'lecturers',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (result.isEmpty) return null;
+
+    return Lecturer.fromMap(result.first);
+  }
+
+  Future<List<Lecturer>> getAllLecturers() async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'lecturers',
+      orderBy: 'name ASC',
+    );
+
+    return result.map((e) => Lecturer.fromMap(e)).toList();
+  }
+
+  Future<int> updateLecturer(Lecturer lecturer) async {
+    final db = await instance.database;
+
+    return db.update(
+      'lecturers',
+      lecturer.toMap(),
+      where: 'id = ?',
+      whereArgs: [lecturer.id],
+    );
+  }
+
+  Future<int> deleteLecturer(int id) async {
+    final db = await instance.database;
+
+    return db.delete(
+      'lecturers',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  //=========================================================
+  // SUBJECT METHODS
+  //=========================================================
 
   Future<int> insertSubject(Subject subject) async {
     final db = await instance.database;
@@ -116,7 +230,24 @@ class DatabaseHelper {
 
   Future<List<Subject>> getAllSubjects() async {
     final db = await instance.database;
-    final result = await db.query('subjects');
+
+    final result = await db.query(
+      'subjects',
+      orderBy: 'subject_name ASC',
+    );
+
+    return result.map((e) => Subject.fromMap(e)).toList();
+  }
+
+  Future<List<Subject>> getSubjectsByLecturer(int lecturerId) async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'subjects',
+      where: 'lecturer_id = ?',
+      whereArgs: [lecturerId],
+      orderBy: 'subject_name ASC',
+    );
 
     return result.map((e) => Subject.fromMap(e)).toList();
   }
@@ -133,6 +264,7 @@ class DatabaseHelper {
     );
 
     if (result.isEmpty) return null;
+
     return result.first['subject_name']?.toString();
   }
 
@@ -157,6 +289,16 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> deleteAllSubjects() async {
+    final db = await instance.database;
+
+    await db.delete('subjects');
+  }
+
+    //=========================================================
+  // STUDENT METHODS
+  //=========================================================
+
   Future<int> insertStudent(Student student) async {
     final db = await instance.database;
 
@@ -176,13 +318,20 @@ class DatabaseHelper {
       limit: 1,
     );
 
-    if (result.isEmpty) return null;
+    if (result.isEmpty) {
+      return null;
+    }
+
     return Student.fromMap(result.first);
   }
 
   Future<List<Student>> getAllStudents() async {
     final db = await instance.database;
-    final result = await db.query('students');
+
+    final result = await db.query(
+      'students',
+      orderBy: 'student_name ASC',
+    );
 
     return result.map((e) => Student.fromMap(e)).toList();
   }
@@ -208,7 +357,14 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> insertSubjectStudent(int subjectId, int studentId) async {
+  //=========================================================
+  // SUBJECT - STUDENT METHODS
+  //=========================================================
+
+  Future<int> insertSubjectStudent(
+    int subjectId,
+    int studentId,
+  ) async {
     final db = await instance.database;
 
     return db.insert(
@@ -220,14 +376,23 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Student>> getStudentsBySubject(int subjectId) async {
+  Future<List<Student>> getStudentsBySubject(
+    int subjectId,
+  ) async {
     final db = await instance.database;
 
     final result = await db.rawQuery(
       '''
-      SELECT s.id, s.student_name, s.usn, s.semester, s.section, s.year
+      SELECT
+        s.id,
+        s.student_name,
+        s.usn,
+        s.semester,
+        s.section,
+        s.year
       FROM students s
-      INNER JOIN subject_students ss ON s.id = ss.student_id
+      INNER JOIN subject_students ss
+      ON s.id = ss.student_id
       WHERE ss.subject_id = ?
       ORDER BY s.student_name ASC
       ''',
@@ -237,94 +402,22 @@ class DatabaseHelper {
     return result.map((e) => Student.fromMap(e)).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getAttendanceBySubject(int subjectId) async {
+  Future<int> removeStudentFromSubject(
+    int subjectId,
+    int studentId,
+  ) async {
     final db = await instance.database;
 
-    return db.rawQuery(
-      '''
-      SELECT
-        students.id AS student_id,
-        students.student_name,
-        students.usn,
-        attendance.date,
-        attendance.status
-      FROM attendance
-      INNER JOIN students ON students.id = attendance.student_id
-      WHERE attendance.subject_id = ?
-      ORDER BY attendance.date DESC
-      ''',
-      [subjectId],
+    return db.delete(
+      'subject_students',
+      where: 'subject_id = ? AND student_id = ?',
+      whereArgs: [subjectId, studentId],
     );
   }
 
-  Future<Map<String, dynamic>?> getStudentAttendanceStatistics({
-    required int subjectId,
-    required int studentId,
-  }) async {
-    final db = await instance.database;
-
-    final result = await db.rawQuery(
-      '''
-      SELECT
-        s.student_name,
-        s.usn,
-        COUNT(a.id) AS total_classes,
-        COALESCE(SUM(CASE WHEN a.status = 1 THEN 1 ELSE 0 END), 0) AS present_count,
-        COALESCE(SUM(CASE WHEN a.status = 0 THEN 1 ELSE 0 END), 0) AS absent_count
-      FROM students s
-      LEFT JOIN attendance a
-        ON s.id = a.student_id AND a.subject_id = ?
-      WHERE s.id = ?
-      GROUP BY s.id, s.student_name, s.usn
-      LIMIT 1
-      ''',
-      [subjectId, studentId],
-    );
-
-    if (result.isEmpty) {
-      return null;
-    }
-
-    final row = result.first;
-    final presentCount = (row['present_count'] as int?) ?? 0;
-    final totalClasses = (row['total_classes'] as int?) ?? 0;
-    final attendancePercentage = totalClasses == 0
-        ? 0.0
-        : (presentCount / totalClasses) * 100;
-
-    return {
-      'student_name': row['student_name']?.toString() ?? '',
-      'usn': row['usn']?.toString() ?? '',
-      'total_classes': totalClasses,
-      'present_count': presentCount,
-      'absent_count': (row['absent_count'] as int?) ?? 0,
-      'attendance_percentage': attendancePercentage,
-    };
-  }
-
-  Future<List<Map<String, dynamic>>> getAttendanceBySubjectAndDate({
-    required int subjectId,
-    required String date,
-  }) async {
-    final db = await instance.database;
-
-    return db.rawQuery(
-      '''
-      SELECT
-        attendance.id AS attendance_id,
-        students.id AS student_id,
-        students.student_name,
-        students.usn,
-        attendance.date,
-        attendance.status
-      FROM attendance
-      INNER JOIN students ON students.id = attendance.student_id
-      WHERE attendance.subject_id = ? AND attendance.date = ?
-      ORDER BY students.student_name ASC
-      ''',
-      [subjectId, date],
-    );
-  }
+    //=========================================================
+  // ATTENDANCE METHODS
+  //=========================================================
 
   Future<int> insertAttendance({
     required int studentId,
@@ -345,12 +438,65 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> updateAttendanceStatus(int attendanceId, int status) async {
+  Future<List<Map<String, dynamic>>> getAttendanceBySubject(
+      int subjectId) async {
+    final db = await instance.database;
+
+    return db.rawQuery(
+      '''
+      SELECT
+        students.id AS student_id,
+        students.student_name,
+        students.usn,
+        attendance.date,
+        attendance.status
+      FROM attendance
+      INNER JOIN students
+      ON students.id = attendance.student_id
+      WHERE attendance.subject_id = ?
+      ORDER BY attendance.date DESC
+      ''',
+      [subjectId],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendanceBySubjectAndDate({
+    required int subjectId,
+    required String date,
+  }) async {
+    final db = await instance.database;
+
+    return db.rawQuery(
+      '''
+      SELECT
+        attendance.id AS attendance_id,
+        students.id AS student_id,
+        students.student_name,
+        students.usn,
+        attendance.date,
+        attendance.status
+      FROM attendance
+      INNER JOIN students
+      ON students.id = attendance.student_id
+      WHERE attendance.subject_id = ?
+      AND attendance.date = ?
+      ORDER BY students.student_name ASC
+      ''',
+      [subjectId, date],
+    );
+  }
+
+  Future<int> updateAttendanceStatus(
+    int attendanceId,
+    int status,
+  ) async {
     final db = await instance.database;
 
     return db.update(
       'attendance',
-      {'status': status},
+      {
+        'status': status,
+      },
       where: 'id = ?',
       whereArgs: [attendanceId],
     );
@@ -369,15 +515,76 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> removeStudentFromSubject(int subjectId, int studentId) async {
+  Future<Map<String, dynamic>?> getStudentAttendanceStatistics({
+    required int subjectId,
+    required int studentId,
+  }) async {
     final db = await instance.database;
 
-    return db.delete(
-      'subject_students',
-      where: 'subject_id = ? AND student_id = ?',
-      whereArgs: [subjectId, studentId],
+    final result = await db.rawQuery(
+      '''
+      SELECT
+        s.student_name,
+        s.usn,
+        COUNT(a.id) AS total_classes,
+        COALESCE(SUM(
+          CASE
+            WHEN a.status = 1 THEN 1
+            ELSE 0
+          END
+        ),0) AS present_count,
+        COALESCE(SUM(
+          CASE
+            WHEN a.status = 0 THEN 1
+            ELSE 0
+          END
+        ),0) AS absent_count
+      FROM students s
+      LEFT JOIN attendance a
+      ON s.id = a.student_id
+      AND a.subject_id = ?
+      WHERE s.id = ?
+      GROUP BY
+        s.id,
+        s.student_name,
+        s.usn
+      LIMIT 1
+      ''',
+      [subjectId, studentId],
     );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    final row = result.first;
+
+    final totalClasses =
+        (row['total_classes'] as int?) ?? 0;
+
+    final presentCount =
+        (row['present_count'] as int?) ?? 0;
+
+    final absentCount =
+        (row['absent_count'] as int?) ?? 0;
+
+    final percentage = totalClasses == 0
+        ? 0.0
+        : (presentCount / totalClasses) * 100;
+
+    return {
+      "student_name": row["student_name"],
+      "usn": row["usn"],
+      "total_classes": totalClasses,
+      "present_count": presentCount,
+      "absent_count": absentCount,
+      "attendance_percentage": percentage,
+    };
   }
+
+  //=========================================================
+  // CLOSE DATABASE
+  //=========================================================
 
   Future<void> close() async {
     final db = await instance.database;

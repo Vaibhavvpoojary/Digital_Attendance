@@ -5,6 +5,7 @@ class Subject {
   String section;
   String roomNo;
   String year;
+  int? lecturerId;
 
   Subject({
     this.id,
@@ -13,6 +14,7 @@ class Subject {
     required this.section,
     required this.roomNo,
     required this.year,
+    required this.lecturerId,
   });
 
   // Convert Subject object to Map
@@ -24,6 +26,8 @@ class Subject {
       'section': section,
       'room_no': roomNo,
       'year': year,
+      'lecturer_id': lecturerId,
+
     };
   }
 
@@ -36,6 +40,7 @@ class Subject {
       section: map['section'],
       roomNo: map['room_no'],
       year: map['year'],
+      lecturerId: map['lecturer_id'],
     );
   }
 }

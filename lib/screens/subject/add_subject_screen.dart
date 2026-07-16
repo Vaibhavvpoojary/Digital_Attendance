@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../database/database_helper.dart';
 import '../../models/subject.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddSubjectScreen extends StatefulWidget {
   const AddSubjectScreen({super.key});
@@ -308,6 +309,14 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
 
                     onPressed: () async {
 
+                        final prefs = await SharedPreferences.getInstance();
+
+  final lecturerId =
+
+      prefs.getInt("lecturerId") ?? 1;
+
+
+
   // Validation
   if (subjectNameController.text.isEmpty ||
       subjectCodeController.text.isEmpty ||
@@ -330,6 +339,7 @@ class _AddSubjectScreenState extends State<AddSubjectScreen> {
     section: sectionController.text,
     roomNo: roomController.text,
     year: yearController.text,
+    lecturerId: lecturerId,
   );
 
   await DatabaseHelper.instance.insertSubject(subject);
